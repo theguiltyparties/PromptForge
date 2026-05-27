@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromptForge | Universal AI Prompt Studio</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent: #a855f7; --deep: #050508; }
+        * { box-sizing: border-box; margin: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--deep); color: #e2e8f0; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        .film-grain {
+            position: fixed; inset: 0; pointer-events: none; opacity: 0.015; z-index: 9999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 3px; }
+
+        .field-input {
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; padding: 10px 14px; font-size: 13px;
+            color: #e2e8f0; width: 100%; transition: all 0.25s; outline: none;
+        }
+        .field-input:focus { border-color: rgba(168,85,247,0.5); box-shadow: 0 0 0 3px rgba(168,85,247,0.08); }
+        .field-input::placeholder { color: #444; }
+        select.field-input {
+            cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+        }
+        select.field-input option { background: #151520; }
+        textarea.field-input { resize: vertical; min-height: 60px; line-height: 1.6; }
+
+        .field-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.1em; color: #666; margin-bottom: 6px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .field-label .dot { width: 4px; height: 4px; border-radius: 50%; }
+
+        .section-card {
+            background: linear-gradient(145deg, rgba(14,14,22,0.97), rgba(8,8,14,0.99));
+            border: 1px solid rgba(255,255,255,0.05); border-radius: 16px;
+            overflow: hidden; transition: all 0.3s;
+        }
+        .section-card:hover { border-color: rgba(255,255,255,0.08); }
+        .section-header {
+            padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; user-select: none;
+        }
+        .section-header:hover { background: rgba(255,255,255,0.01); }
+        .section-body { padding: 18px 20px; }
+        .section-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+        .section-chevron { transition: transform 0.3s; color: #555; }
+        .section-card.collapsed .section-body { display: none; }
+        .section-card.collapsed .section-chevron { transform: rotate(-90deg); }
+
+        .pill-group { display: flex; flex-wrap: wrap; gap: 6px; }
+        .pill {
+            padding: 5px 12px; border-radius: 9999px; font-size: 11px; font-weight: 500;
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.07);
+            background: rgba(0,0,0,0.3); color: #777; transition: all 0.2s; user-select: none;
+        }
+        .pill:hover { border-color: rgba(255,255,255,0.15); color: #aaa; }
+        .pill.active {
+            background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.08));
+            border-color: rgba(168,85,247,0.4); color: #a855f7;
+            box-shadow: 0 0 12px rgba(168,85,247,0.1);
+        }
+
+        .preview-panel {
+            background: linear-gradient(180deg, #0a0a12 0%, #060609 100%);
+            border: 1px solid rgba(255,255,255,0.05); border-radius: 16px;
+            position: sticky; top: 72px; overflow: hidden;
+        }
+
+        .prompt-output { font-size: 13px; line-height: 1.85; color: #b8bcc8; white-space: pre-wrap; word-wrap: break-word; }
+        .prompt-output .hl-purple { color: #a855f7; font-weight: 500; }
+        .prompt-output .hl-blue { color: #60a5fa; font-weight: 500; }
+        .prompt-output .hl-amber { color: #fbbf24; font-weight: 500; }
+        .prompt-output .hl-red { color: #f87171; font-weight: 500; }
+        .prompt-output .hl-green { color: #4ade80; font-weight: 500; }
+
+        .toggle-track {
+            width: 36px; height: 20px; background: rgba(255,255,255,0.08);
+            border-radius: 10px; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+        }
+        .toggle-track.on { background: rgba(168,85,247,0.4); }
+        .toggle-knob { width: 14px; height: 14px; background: #fff; border-radius: 50%; position: absolute; top: 3px; left: 3px; transition: transform 0.2s; }
+        .toggle-track.on .toggle-knob { transform: translateX(16px); }
+
+        .platform-card {
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.25s; text-align: center;
+        }
+        .platform-card:hover { border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.05); transform: translateY(-2px); }
+        .platform-card.active { border-color: rgba(168,85,247,0.5); background: rgba(168,85,247,0.1); box-shadow: 0 0 20px rgba(168,85,247,0.1); }
+        .platform-card .platform-icon { font-size: 24px; margin-bottom: 6px; }
+
+        .media-toggle { display: inline-flex; background: rgba(0,0,0,0.4); border-radius: 10px; padding: 3px; border: 1px solid rgba(255,255,255,0.06); }
+        .media-toggle-btn { padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #666; }
+        .media-toggle-btn.active { background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; box-shadow: 0 2px 10px rgba(168,85,247,0.3); }
+
+        .copy-btn { transition: all 0.2s; }
+        .copy-btn:active { transform: scale(0.97); }
+        .word-badge { font-size: 10px; padding: 3px 8px; border-radius: 9999px; font-weight: 600; }
+
+        .platform-tip { background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.2); border-radius: 10px; padding: 12px 14px; }
+
+        .adapt-btn { font-size: 11px; padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #888; cursor: pointer; transition: all 0.2s; }
+        .adapt-btn:hover { background: rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.3); color: #a855f7; }
+
+        .bokeh { position: absolute; border-radius: 50%; filter: blur(8px); animation: bokehFloat 9s ease-in-out infinite; }
+        @keyframes bokehFloat { 0%,100% { transform: translateY(0) scale(1); opacity: 0.2; } 50% { transform: translateY(-15px) scale(1.1); opacity: 0.4; } }
+
+        .tab-btn { padding: 8px 16px; font-size: 12px; font-weight: 600; color: #666; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .tab-btn:hover { color: #999; }
+        .tab-btn.active { color: #a855f7; border-bottom-color: #a855f7; }
+
+        @media (max-width: 1280px) { .main-grid { grid-template-columns: 1fr !important; } .preview-panel { position: relative !important; top: 0 !important; } }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="film-grain"></div>
+    <div class="fixed inset-0 overflow-hidden pointer-events-none" style="z-index:0;">
+        <div class="bokeh w-28 h-28 bg-purple-500/15" style="top:10%;left:5%;animation-delay:0s;"></div>
+        <div class="bokeh w-20 h-20 bg-blue-400/12" style="top:60%;left:90%;animation-delay:2s;"></div>
+        <div class="bokeh w-32 h-32 bg-indigo-500/10" style="top:75%;left:8%;animation-delay:4s;"></div>
+        <div class="bokeh w-16 h-16 bg-pink-400/15" style="top:20%;left:85%;animation-delay:3s;"></div>
+    </div>
+
+    <div class="relative z-10">
+        <!-- Header -->
+        <header class="border-b border-white/5 bg-black/60 backdrop-blur-2xl sticky top-0 z-50">
+            <div class="max-w-[1600px] mx-auto px-5 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 via-fuchsia-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-bold text-white leading-tight">PromptForge</h1>
+                        <p class="text-[10px] text-gray-500 mono tracking-widest">UNIVERSAL AI PROMPT STUDIO</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="media-toggle">
+                        <div class="media-toggle-btn active" id="toggleVideo" onclick="setMediaType('video')">🎬 Video</div>
+                        <div class="media-toggle-btn" id="toggleImage" onclick="setMediaType('image')">🖼️ Image</div>
+                    </div>
+                    <button onclick="resetAll()" class="flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-white border border-white/8 rounded-lg px-3 py-1.5 transition-all hover:border-red-500/30 hover:text-red-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Platform Selector -->
+        <div class="max-w-[1600px] mx-auto px-5 pt-5 pb-3">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select Platform</span>
+                <div class="flex-1 h-px bg-white/5"></div>
+                <span class="text-[10px] text-gray-600 mono" id="platformCount">12 platforms</span>
+            </div>
+            
+            <!-- Video Platforms -->
+            <div id="videoPlatforms" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                <div class="platform-card active" data-platform="universal" onclick="selectPlatform('universal')">
+                    <div class="platform-icon">🌐</div>
+                    <div class="text-[11px] font-bold text-white">Universal</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Works Anywhere</div>
+                </div>
+                <div class="platform-card" data-platform="veo3" onclick="selectPlatform('veo3')">
+                    <div class="platform-icon">🔷</div>
+                    <div class="text-[11px] font-bold text-white">VEO 3</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Google</div>
+                </div>
+                <div class="platform-card" data-platform="sora" onclick="selectPlatform('sora')">
+                    <div class="platform-icon">⚪</div>
+                    <div class="text-[11px] font-bold text-white">Sora</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">OpenAI</div>
+                </div>
+                <div class="platform-card" data-platform="runway" onclick="selectPlatform('runway')">
+                    <div class="platform-icon">🟣</div>
+                    <div class="text-[11px] font-bold text-white">Gen-3</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Runway</div>
+                </div>
+                <div class="platform-card" data-platform="kling" onclick="selectPlatform('kling')">
+                    <div class="platform-icon">🔵</div>
+                    <div class="text-[11px] font-bold text-white">Kling</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Kuaishou</div>
+                </div>
+                <div class="platform-card" data-platform="pika" onclick="selectPlatform('pika')">
+                    <div class="platform-icon">🟡</div>
+                    <div class="text-[11px] font-bold text-white">Pika 2.0</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Pika Labs</div>
+                </div>
+                <div class="platform-card" data-platform="minimax" onclick="selectPlatform('minimax')">
+                    <div class="platform-icon">🟠</div>
+                    <div class="text-[11px] font-bold text-white">Hailuo</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">MiniMax</div>
+                </div>
+                <div class="platform-card" data-platform="luma" onclick="selectPlatform('luma')">
+                    <div class="platform-icon">✨</div>
+                    <div class="text-[11px] font-bold text-white">Dream Machine</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Luma</div>
+                </div>
+                <div class="platform-card" data-platform="seedream" onclick="selectPlatform('seedream')">
+                    <div class="platform-icon">🌱</div>
+                    <div class="text-[11px] font-bold text-white">Seedream</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">ByteDance</div>
+                </div>
+                <div class="platform-card" data-platform="vidu" onclick="selectPlatform('vidu')">
+                    <div class="platform-icon">🔴</div>
+                    <div class="text-[11px] font-bold text-white">Vidu</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Shengshu</div>
+                </div>
+                <div class="platform-card" data-platform="haiper" onclick="selectPlatform('haiper')">
+                    <div class="platform-icon">⚡</div>
+                    <div class="text-[11px] font-bold text-white">Haiper</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Haiper AI</div>
+                </div>
+                <div class="platform-card" data-platform="svd" onclick="selectPlatform('svd')">
+                    <div class="platform-icon">🎞️</div>
+                    <div class="text-[11px] font-bold text-white">SVD</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Stability</div>
+                </div>
+            </div>
+
+            <!-- Image Platforms -->
+            <div id="imagePlatforms" class="hidden grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                <div class="platform-card active" data-platform="universal" onclick="selectPlatform('universal')">
+                    <div class="platform-icon">🌐</div>
+                    <div class="text-[11px] font-bold text-white">Universal</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Works Anywhere</div>
+                </div>
+                <div class="platform-card" data-platform="midjourney" onclick="selectPlatform('midjourney')">
+                    <div class="platform-icon">⛵</div>
+                    <div class="text-[11px] font-bold text-white">Midjourney</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">v6.1</div>
+                </div>
+                <div class="platform-card" data-platform="dalle" onclick="selectPlatform('dalle')">
+                    <div class="platform-icon">🟢</div>
+                    <div class="text-[11px] font-bold text-white">DALL·E 3</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">OpenAI</div>
+                </div>
+                <div class="platform-card" data-platform="flux" onclick="selectPlatform('flux')">
+                    <div class="platform-icon">⬛</div>
+                    <div class="text-[11px] font-bold text-white">Flux</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Black Forest</div>
+                </div>
+                <div class="platform-card" data-platform="ideogram" onclick="selectPlatform('ideogram')">
+                    <div class="platform-icon">💜</div>
+                    <div class="text-[11px] font-bold text-white">Ideogram</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">v2.0</div>
+                </div>
+                <div class="platform-card" data-platform="sd" onclick="selectPlatform('sd')">
+                    <div class="platform-icon">🎨</div>
+                    <div class="text-[11px] font-bold text-white">Stable Diff</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">SDXL / SD3</div>
+                </div>
+                <div class="platform-card" data-platform="leonardo" onclick="selectPlatform('leonardo')">
+                    <div class="platform-icon">🦁</div>
+                    <div class="text-[11px] font-bold text-white">Leonardo</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Phoenix</div>
+                </div>
+                <div class="platform-card" data-platform="firefly" onclick="selectPlatform('firefly')">
+                    <div class="platform-icon">🔥</div>
+                    <div class="text-[11px] font-bold text-white">Firefly</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Adobe</div>
+                </div>
+                <div class="platform-card" data-platform="imagen" onclick="selectPlatform('imagen')">
+                    <div class="platform-icon">🔷</div>
+                    <div class="text-[11px] font-bold text-white">Imagen 3</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">Google</div>
+                </div>
+                <div class="platform-card" data-platform="recraft" onclick="selectPlatform('recraft')">
+                    <div class="platform-icon">🔶</div>
+                    <div class="text-[11px] font-bold text-white">Recraft</div>
+                    <div class="text-[9px] text-gray-500 mt-0.5">v3</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Platform Tip Bar -->
+        <div class="max-w-[1600px] mx-auto px-5 pb-4">
+            <div class="platform-tip flex items-start gap-3" id="platformTip">
+                <span class="text-lg">💡</span>
+                <div>
+                    <div class="text-xs font-semibold text-purple-300 mb-0.5" id="tipTitle">Universal Mode</div>
+                    <div class="text-[11px] text-gray-400 leading-relaxed" id="tipContent">Your prompt will be optimized to work across all major AI platforms. Great for testing the same concept on multiple generators.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="max-w-[1600px] mx-auto px-5 pb-20">
+            <div class="main-grid grid gap-5" style="grid-template-columns: 1fr 420px;">
+
+                <!-- LEFT: Builder -->
+                <div class="space-y-4">
+
+                    <!-- Quick Presets -->
+                    <div class="section-card" id="sec-presets">
+                        <div class="section-header" onclick="toggleSection('sec-presets')">
+                            <div class="section-icon bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400">⚡</div>
+                            <span class="text-sm font-bold text-white flex-1">Quick Start Presets</span>
+                            <svg class="section-chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <div class="section-body">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2" id="presetsGrid">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scene / Subject -->
+                    <div class="section-card" id="sec-scene">
+                        <div class="section-header" onclick="toggleSection('sec-scene')">
+                            <div class="section-icon bg-amber-500/10 text-amber-400">🎬</div>
+                            <span class="text-sm font-bold text-white flex-1" id="sceneLabel">Scene Foundation</span>
+                            <svg class="section-chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <div class="section-body space-y-4">
+                            <div>
+                                <label class="field-label"><span class="dot bg-amber-400"></span><span id="shotLabel">Shot Type</span></label>
+                                <div class="pill-group" data-field="shotType" id="shotPills">
+                                    <!-- Populated by JS based on media type -->
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="field-label"><span class="dot bg-blue-400"></span>Time / Lighting</label>
+                                    <select class="field-input" id="timeOfDay" onchange="generate()">
+                                        <option value="">Select...</option>
+                                        <option value="dawn light">Dawn</option>
+                                        <option value="golden hour morning light">Golden Hour AM</option>
+                                        <option value="bright midday sun">Midday</option>
+                                        <option value="soft afternoon light">Afternoon</option>
+                                        <option value="golden hour sunset light">Golden Hour PM</option>
+                                        <option value="dusk twilight">Dusk</option>
+                                        <option value="blue hour">Blue Hour</option>
+                                        <option value="nighttime">Night</option>
+                                        <option value="overcast diffused light">Overcast</option>
+                                        <option value="stormy dramatic sky">Stormy</option>
+                                        <option value="studio lighting">Studio</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="field-label"><span class="dot bg-green-400"></span>Environment</label>
+                                    <select class="field-input" id="environment" onchange="generate()">
+                                        <option value="">Select...</option>
+                                        <option value="interior">Interior</option>
+                                        <option value="exterior">Exterior</option>
+                                        <option value="studio backdrop">Studio</option>
+                                        <option value="abstract void">Abstract</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="field-label"><span class="dot bg-purple-400"></span>Main Description</label>
+                                <textarea class="field-input" id="mainDescription" placeholder="Describe your scene or subject in detail..." oninput="generate()" style="min-height:80px;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subject / Character (for video) -->
+                    <div class="section-card" id="sec-subject">
+                        <div class="section-header">
+                            <div class="section-icon bg-blue-500/10 text-blue-400" onclick="toggleSection('sec-subject')">👤</div>
+                            <span class="text-sm font-bold text-white flex-1" onclick="toggleSection('sec-subject')" id="subjectLabel">Subject / Character</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-gray-600">Enabled</span>
+                                <div class="toggle-track on" id="subjectToggle" onclick="toggleSubject(event)">
+                                    <div class="toggle-knob"></div>
+                                </div>
+                            </div>
+                            <svg class="section-chevron w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="toggleSection('sec-subject')"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <div class="section-body" id="subjectFields">
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="field-label"><span class="dot bg-blue-400"></span>Name / Subject</label>
+                                        <input type="text" class="field-input" id="subjectName" placeholder="e.g., Elena, the robot, a wolf" oninput="generate()">
+                                    </div>
+                                    <div>
+                                        <label class="field-label"><span class="dot bg-blue-400"></span>Position / Framing</label>
+                                        <select class="field-input" id="subjectPosition" onchange="generate()">
+                                            <option value="">Select...</option>
+                                            <option value="centered in frame">Centered</option>
+                                            <option value="in the foreground">Foreground</option>
+                                            <option value="in the background">Background</option>
+                                            <option value="left side of frame">Left Third</option>
+                                            <option value="right side of frame">Right Third</option>
+                                            <option value="filling the frame">Filling Frame</option>
+                                            <option value="partially visible">Partial View</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="field-label"><span class="dot bg-yellow-400"></span>Appearance / Details</label>
+                                    <textarea class="field-input" id="subjectAppearance" placeholder="Describe clothing, features, colors, textures..." oninput="generate()" style="min-height:50px;"></textarea>
+                                </div>
+                                <div id="actionField">
+                                    <label class="field-label"><span class="dot bg-amber-400"></span>Action / Motion</label>
+                                    <textarea class="field-input" id="subjectAction" placeholder="What is the subject doing? Describe movement and gestures..." oninput="generate()"></textarea>
+                                </div>
+                                <div>
+                                    <label class="field-label"><span class="dot bg-green-400"></span>Mood / Expression</label>
+                                    <input type="text" class="field-input" id="subjectMood" placeholder="e.g., serene confidence, intense focus, playful energy" oninput="generate()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Style & Atmosphere -->
+                    <div class="section-card" id="sec-style">
+                        <div class="section-header" onclick="toggleSection('sec-style')">
+                            <div class="section-icon bg-pink-500/10 text-pink-400">🎨</div>
+                            <span class="text-sm font-bold text-white flex-1">Style & Atmosphere</span>
+                            <svg class="section-chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <div class="section-body space-y-4">
+                            <div>
+                                <label class="field-label"><span class="dot bg-pink-400"></span>Visual Style</label>
+                                <div class="pill-group" data-field="visualStyle" id="stylePills">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <div>
+                                <label class="field-label"><span class="dot bg-yellow-400"></span>Lighting Style</label>
+                                <div class="pill-group" data-field="lightingStyle">
+                                    <span class="pill" data-value="natural lighting">Natural</span>
+                                    <span class="pill" data-value="soft diffused light">Soft</span>
+                                    <span class="pill" data-value="dramatic side lighting">Dramatic</span>
+                                    <span class="pill" data-value="backlit silhouette">Backlit</span>
+                                    <span class="pill" data-value="neon glow">Neon</span>
+                                    <span class="pill" data-value="chiaroscuro">Chiaroscuro</span>
+                                    <span class="pill" data-value="volumetric rays">Volumetric</span>
+                                    <span class="pill" data-value="rim lighting">Rim Light</span>
+                                    <span class="pill" data-value="bioluminescent">Bioluminescent</span>
+                                    <span class="pill" data-value="candlelight">Candlelight</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="field-label"><span class="dot bg-purple-400"></span>Atmosphere / Mood</label>
+                                <textarea class="field-input" id="atmosphere" placeholder="e.g., misty morning haze, rain-slicked streets, floating dust particles..." oninput="generate()" style="min-height:50px;"></textarea>
+                            </div>
+                            <div>
+                                <label class="field-label"><span class="dot bg-orange-400"></span>Color Palette</label>
+                                <input type="text" class="field-input" id="colorPalette" placeholder="e.g., muted earth tones, vibrant neon, monochromatic blue" oninput="generate()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical (Video) / Quality (Image) -->
+                    <div class="section-card" id="sec-technical">
+                        <div class="section-header" onclick="toggleSection('sec-technical')">
+                            <div class="section-icon bg-red-500/10 text-red-400">📹</div>
+                            <span class="text-sm font-bold text-white flex-1" id="techLabel">Technical & Camera</span>
+                            <svg class="section-chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <div class="section-body space-y-4">
+                            <div id="cameraFields">
+                                <div class="grid grid-cols-2 gap-3 mb-4">
+                                    <div>
+                                        <label class="field-label"><span class="dot bg-red-400"></span>Camera / Quality</label>
+                                        <select class="field-input" id="camera" onchange="generate()">
+                                            <option value="">Select...</option>
+                                            <option value="cinematic film camera">Cinematic</option>
+                                            <option value="ARRI Alexa">ARRI Alexa</option>
+                                            <option value="RED camera">RED</option>
+                                            <option value="Sony Venice">Sony Venice</option>
+                                            <option value="DSLR photography">DSLR</option>
+                                            <option value="medium format Hasselblad">Hasselblad</option>
+                                            <option value="vintage film camera">Vintage Film</option>
+                                            <option value="iPhone photography">iPhone</option>
+                                            <option value="drone aerial">Drone</option>
+                                            <option value="GoPro action camera">GoPro</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="field-label"><span class="dot bg-red-400"></span>Lens / Perspective</label>
+                                        <select class="field-input" id="lens" onchange="generate()">
+                                            <option value="">Select...</option>
+                                            <option value="wide angle lens">Wide Angle</option>
+                                            <option value="35mm lens">35mm</option>
+                                            <option value="50mm lens">50mm</option>
+                                            <option value="85mm portrait lens">85mm Portrait</option>
+                                            <option value="telephoto lens">Telephoto</option>
+                                            <option value="macro lens">Macro</option>
+                                            <option value="fisheye lens">Fisheye</option>
+                                            <option value="anamorphic lens">Anamorphic</option>
+                                            <option value="tilt-shift lens">Tilt-Shift</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="motionFields">
+                                <div class="grid grid-cols-2 gap-3 mb-4">
+                                    <div>
+                                        <label class="field-label"><span class="dot bg-pink-400"></span>Camera Motion</label>
+                                        <select class="field-input" id="cameraMotion" onchange="generate()">
+                                            <option value="">Static</option>
+                                            <option value="slow dolly in">Dolly In</option>
+                                            <option value="slow dolly out">Dolly Out</option>
+                                            <option value="smooth tracking shot">Tracking</option>
+                                            <option value="crane shot rising">Crane Up</option>
+                                            <option value="crane shot descending">Crane Down</option>
+                                            <option value="orbit around subject">Orbit</option>
+                                            <option value="handheld movement">Handheld</option>
+                                            <option value="slow zoom">Slow Zoom</option>
+                                            <option value="whip pan">Whip Pan</option>
+                                            <option value="first person POV movement">POV Move</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="field-label"><span class="dot bg-pink-400"></span>Aspect Ratio</label>
+                                        <select class="field-input" id="aspectRatio" onchange="generate()">
+                                            <option value="">Default</option>
+                                            <option value="16:9 widescreen">16:9</option>
+                                            <option value="21:9 cinematic ultrawide">21:9 Cine</option>
+                                            <option value="4:3 classic">4:3</option>
+                                            <option value="1:1 square">1:1</option>
+                                            <option value="9:16 vertical">9:16 Vert</option>
+                                            <option value="2.39:1 anamorphic">2.39:1</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="field-label"><span class="dot bg-gray-400"></span>Quality & Render</label>
+                                <div class="pill-group" data-field="quality">
+                                    <span class="pill" data-value="photorealistic">Photorealistic</span>
+                                    <span class="pill" data-value="hyperdetailed">Hyperdetailed</span>
+                                    <span class="pill" data-value="8K resolution">8K</span>
+                                    <span class="pill" data-value="RAW photo">RAW</span>
+                                    <span class="pill" data-value="film grain texture">Film Grain</span>
+                                    <span class="pill" data-value="shallow depth of field">Shallow DoF</span>
+                                    <span class="pill" data-value="deep focus">Deep Focus</span>
+                                    <span class="pill" data-value="motion blur">Motion Blur</span>
+                                    <span class="pill" data-value="HDR">HDR</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Refinements -->
+                    <div class="section-card" id="sec-refine">
+                        <div class="section-header" onclick="toggleSection('sec-refine')">
+                            <div class="section-icon bg-green-500/10 text-green-400">✨</div>
+                            <span class="text-sm font-bold text-white flex-1">Refinements</span>
+                            <svg class="section-chevron w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <div class="section-body space-y-4">
+                            <div>
+                                <label class="field-label"><span class="dot bg-green-400"></span>Emphasis (enhance these)</label>
+                                <textarea class="field-input" id="emphasis" placeholder="e.g., intricate details, dramatic shadows, emotional impact, texture clarity" oninput="generate()" style="min-height:45px;"></textarea>
+                            </div>
+                            <div>
+                                <label class="field-label"><span class="dot bg-red-400"></span>Negative (avoid these)</label>
+                                <textarea class="field-input" id="negative" placeholder="e.g., blurry, deformed hands, text, watermark, low quality" oninput="generate()" style="min-height:45px;"></textarea>
+                            </div>
+                            <div id="mjParams" class="hidden">
+                                <label class="field-label"><span class="dot bg-blue-400"></span>Midjourney Parameters</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <input type="text" class="field-input text-center mono" id="mjAr" placeholder="--ar 16:9" oninput="generate()">
+                                    <input type="text" class="field-input text-center mono" id="mjStyle" placeholder="--style raw" oninput="generate()">
+                                    <input type="text" class="field-input text-center mono" id="mjOther" placeholder="--v 6.1" oninput="generate()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT: Preview -->
+                <div>
+                    <div class="preview-panel">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                            <div class="flex items-center gap-2.5">
+                                <div class="flex gap-1.5">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+                                </div>
+                                <span class="mono text-[10px] text-gray-600" id="outputFilename">prompt.txt</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span id="wordCount" class="word-badge mono bg-white/5 text-gray-500">0</span>
+                                <span id="charCount" class="word-badge mono bg-white/5 text-gray-500">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Platform Badge -->
+                        <div class="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg" id="activePlatformIcon">🌐</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white" id="activePlatformName">Universal</div>
+                                    <div class="text-[10px] text-gray-500" id="activePlatformType">Video + Image</div>
+                                </div>
+                            </div>
+                            <div class="flex gap-1.5">
+                                <button class="adapt-btn" onclick="openAdaptModal()">📤 Adapt For...</button>
+                            </div>
+                        </div>
+
+                        <!-- Output Tabs -->
+                        <div class="flex border-b border-white/5 px-4">
+                            <div class="tab-btn active" data-tab="formatted" onclick="switchOutputTab('formatted')">Formatted</div>
+                            <div class="tab-btn" data-tab="raw" onclick="switchOutputTab('raw')">Raw Text</div>
+                            <div class="tab-btn" data-tab="negative" onclick="switchOutputTab('negative')" id="negativeTab">Negative</div>
+                        </div>
+
+                        <!-- Prompt Output -->
+                        <div class="px-4 py-4" style="max-height: 40vh; overflow-y: auto;">
+                            <div id="promptOutput" class="prompt-output">
+                                <span class="text-gray-600 italic">Start building your prompt using the controls...</span>
+                            </div>
+                            <div id="promptOutputRaw" class="prompt-output hidden"></div>
+                            <div id="promptOutputNegative" class="prompt-output hidden">
+                                <span class="text-gray-600 italic">Add negative prompts in the Refinements section...</span>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="px-4 py-3 border-t border-white/5">
+                            <div class="flex gap-2 mb-2">
+                                <button onclick="copyPrompt('main')" id="copyBtn" class="copy-btn flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-purple-500/20 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                                    <span id="copyLabel">Copy Prompt</span>
+                                </button>
+                                <button onclick="copyPrompt('negative')" class="flex items-center justify-center px-4 py-2.5 rounded-xl border border-white/10 hover:border-red-500/30 text-gray-400 hover:text-red-400 text-xs font-semibold transition-all" title="Copy Negative">
+                                    📛 Neg
+                                </button>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="savePrompt()" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/8 hover:border-purple-500/30 text-gray-500 hover:text-purple-400 text-[11px] font-semibold transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+                                    Save
+                                </button>
+                                <button onclick="downloadPrompt()" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/8 hover:border-white/20 text-gray-500 hover:text-white text-[11px] font-semibold transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    Download
+                                </button>
+                                <button onclick="toggleSaved()" class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/8 hover:border-white/20 text-gray-500 hover:text-white text-[11px] font-semibold transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    History
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Saved Prompts (hidden) -->
+                        <div id="savedPanel" class="hidden border-t border-white/5 px-4 py-3" style="max-height: 200px; overflow-y: auto;">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-gray-400">Saved Prompts</span>
+                                <button onclick="clearSaved()" class="text-[10px] text-red-400/60 hover:text-red-400">Clear All</button>
+                            </div>
+                            <div id="savedList" class="space-y-2">
+                                <p class="text-[11px] text-gray-600 italic">No saved prompts yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Adapt Modal -->
+    <div id="adaptModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm" onclick="closeAdaptModal(event)">
+        <div class="bg-[#0c0c14] border border-white/10 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white">Adapt Prompt For...</h3>
+                <button onclick="closeAdaptModal()" class="text-gray-500 hover:text-white text-xl">&times;</button>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">Select a platform to optimize your prompt for:</p>
+            <div class="grid grid-cols-3 gap-2 mb-4" id="adaptPlatforms"></div>
+            <div id="adaptedOutput" class="hidden">
+                <div class="text-xs font-semibold text-purple-400 mb-2">Adapted Prompt:</div>
+                <div class="bg-black/40 rounded-lg p-3 text-sm text-gray-300 mb-3 max-h-40 overflow-y-auto" id="adaptedText"></div>
+                <button onclick="copyAdapted()" class="w-full py-2 rounded-lg bg-gradient-to-r from-purple-500 to-fuchsia-500 text-white font-semibold text-sm">Copy Adapted Prompt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== CONFIG ==========
+        const PLATFORMS = {
+            // VIDEO
+            universal: { name: 'Universal', icon: '🌐', type: 'both', tip: 'Optimized for all platforms. Great for testing across multiple generators.', promptStyle: 'descriptive' },
+            veo3: { name: 'VEO 3', icon: '🔷', type: 'video', company: 'Google', tip: 'Responds well to cinematic terminology, camera directions, and detailed scene descriptions. Supports longer prompts.', promptStyle: 'cinematic' },
+            sora: { name: 'Sora', icon: '⚪', type: 'video', company: 'OpenAI', tip: 'Excels with natural language descriptions. Be specific about physics, motion, and world details.', promptStyle: 'natural' },
+            runway: { name: 'Gen-3 Alpha', icon: '🟣', type: 'video', company: 'Runway', tip: 'Prefers concise, focused prompts. Strong with style keywords and motion descriptions.', promptStyle: 'concise' },
+            kling: { name: 'Kling', icon: '🔵', type: 'video', company: 'Kuaishou', tip: 'Works well with structured prompts. Good at human motion and facial expressions.', promptStyle: 'structured' },
+            pika: { name: 'Pika 2.0', icon: '🟡', type: 'video', company: 'Pika Labs', tip: 'Simpler prompts often work better. Focus on one main action or transformation.', promptStyle: 'simple' },
+            minimax: { name: 'Hailuo', icon: '🟠', type: 'video', company: 'MiniMax', tip: 'Good with character consistency. Specify appearance details clearly.', promptStyle: 'descriptive' },
+            luma: { name: 'Dream Machine', icon: '✨', type: 'video', company: 'Luma', tip: 'Excels with camera movements. Specify motion paths and transitions.', promptStyle: 'motion' },
+            seedream: { name: 'Seedream', icon: '🌱', type: 'video', company: 'ByteDance', tip: 'Strong with Asian aesthetics and character motion. Use clear scene structure.', promptStyle: 'structured' },
+            vidu: { name: 'Vidu', icon: '🔴', type: 'video', company: 'Shengshu', tip: 'Good for multi-character scenes. Be explicit about interactions.', promptStyle: 'descriptive' },
+            haiper: { name: 'Haiper', icon: '⚡', type: 'video', company: 'Haiper AI', tip: 'Fast generation, simple prompts work well. Focus on key elements.', promptStyle: 'simple' },
+            svd: { name: 'SVD', icon: '🎞️', type: 'video', company: 'Stability', tip: 'Image-to-video model. Describe the motion you want from a starting image.', promptStyle: 'motion' },
+            
+            // IMAGE
+            midjourney: { name: 'Midjourney', icon: '⛵', type: 'image', company: 'Midjourney', tip: 'Uses parameters like --ar, --v, --style. Responds to artistic references and style keywords.', promptStyle: 'keywords', params: true },
+            dalle: { name: 'DALL·E 3', icon: '🟢', type: 'image', company: 'OpenAI', tip: 'Natural language works best. Be descriptive and specific about composition.', promptStyle: 'natural' },
+            flux: { name: 'Flux', icon: '⬛', type: 'image', company: 'Black Forest', tip: 'Excellent with detailed prompts. Handles text rendering well. Very flexible.', promptStyle: 'descriptive' },
+            ideogram: { name: 'Ideogram', icon: '💜', type: 'image', company: 'Ideogram', tip: 'Best-in-class text rendering. Specify fonts, colors, and text placement.', promptStyle: 'descriptive' },
+            sd: { name: 'Stable Diffusion', icon: '🎨', type: 'image', company: 'Stability', tip: 'Uses weighted tokens, embeddings. Negative prompts are crucial. Model-dependent.', promptStyle: 'weighted', negative: true },
+            leonardo: { name: 'Leonardo', icon: '🦁', type: 'image', company: 'Leonardo AI', tip: 'Good with style presets. Specify artistic style and quality keywords.', promptStyle: 'keywords' },
+            firefly: { name: 'Firefly', icon: '🔥', type: 'image', company: 'Adobe', tip: 'Commercial-safe. Good with design terminology. Structure and composition focused.', promptStyle: 'descriptive' },
+            imagen: { name: 'Imagen 3', icon: '🔷', type: 'image', company: 'Google', tip: 'Natural language, detailed descriptions. Strong photorealism capabilities.', promptStyle: 'natural' },
+            recraft: { name: 'Recraft', icon: '🔶', type: 'image', company: 'Recraft', tip: 'Excellent for design and illustration. Specify style clearly.', promptStyle: 'descriptive' }
+        };
+
+        const VIDEO_SHOTS = [
+            { value: 'extreme wide shot', label: 'Ext. Wide' },
+            { value: 'wide shot', label: 'Wide' },
+            { value: 'full shot', label: 'Full' },
+            { value: 'medium shot', label: 'Medium' },
+            { value: 'medium close-up', label: 'Med CU' },
+            { value: 'close-up', label: 'Close-Up' },
+            { value: 'extreme close-up', label: 'Ext. CU' },
+            { value: 'over-the-shoulder', label: 'OTS' },
+            { value: 'POV shot', label: 'POV' },
+            { value: 'tracking shot', label: 'Tracking' },
+            { value: 'aerial shot', label: 'Aerial' },
+            { value: 'low angle', label: 'Low Angle' },
+            { value: 'high angle', label: 'High Angle' },
+            { value: 'Dutch angle', label: 'Dutch' }
+        ];
+
+        const IMAGE_COMPOSITIONS = [
+            { value: 'portrait composition', label: 'Portrait' },
+            { value: 'landscape composition', label: 'Landscape' },
+            { value: 'full body shot', label: 'Full Body' },
+            { value: 'headshot', label: 'Headshot' },
+            { value: 'close-up detail', label: 'Detail' },
+            { value: 'wide establishing shot', label: 'Wide' },
+            { value: 'bird\'s eye view', label: 'Bird\'s Eye' },
+            { value: 'worm\'s eye view', label: 'Worm\'s Eye' },
+            { value: 'symmetrical composition', label: 'Symmetry' },
+            { value: 'rule of thirds', label: 'Rule of 3rds' },
+            { value: 'centered subject', label: 'Centered' },
+            { value: 'dynamic diagonal', label: 'Diagonal' }
+        ];
+
+        const VIDEO_STYLES = [
+            { value: 'cinematic', label: 'Cinematic' },
+            { value: 'documentary', label: 'Documentary' },
+            { value: 'film noir', label: 'Film Noir' },
+            { value: 'music video', label: 'Music Video' },
+            { value: 'anime', label: 'Anime' },
+            { value: '3D animation', label: '3D Animated' },
+            { value: 'stop motion', label: 'Stop Motion' },
+            { value: 'vintage VHS', label: 'VHS' },
+            { value: 'slow motion', label: 'Slow-Mo' },
+            { value: 'time-lapse', label: 'Time-Lapse' },
+            { value: 'horror', label: 'Horror' },
+            { value: 'commercial', label: 'Commercial' }
+        ];
+
+        const IMAGE_STYLES = [
+            { value: 'photorealistic', label: 'Photorealistic' },
+            { value: 'digital art', label: 'Digital Art' },
+            { value: 'oil painting', label: 'Oil Painting' },
+            { value: 'watercolor', label: 'Watercolor' },
+            { value: 'pencil sketch', label: 'Sketch' },
+            { value: 'anime style', label: 'Anime' },
+            { value: '3D render', label: '3D Render' },
+            { value: 'pixel art', label: 'Pixel Art' },
+            { value: 'vector illustration', label: 'Vector' },
+            { value: 'vintage photograph', label: 'Vintage' },
+            { value: 'surrealist', label: 'Surrealist' },
+            { value: 'minimalist', label: 'Minimalist' },
+            { value: 'concept art', label: 'Concept Art' },
+            { value: 'fashion photography', label: 'Fashion' }
+        ];
+
+        const PRESETS = {
+            video: [
+                { name: '🎬 Cinematic', style: 'cinematic', shot: 'wide shot', lighting: 'dramatic side lighting', desc: 'Dramatic wide shot' },
+                { name: '👤 Interview', style: 'documentary', shot: 'medium close-up', lighting: 'soft diffused light', desc: 'Talking head setup' },
+                { name: '🏃 Action', style: 'cinematic', shot: 'tracking shot', lighting: 'natural lighting', motion: 'smooth tracking shot', desc: 'Dynamic movement' },
+                { name: '🌆 Establishing', style: 'cinematic', shot: 'extreme wide shot', lighting: 'natural lighting', desc: 'Scene-setting wide' },
+                { name: '😱 Horror', style: 'horror', shot: 'POV shot', lighting: 'chiaroscuro', desc: 'Creepy atmosphere' },
+                { name: '🎵 Music Video', style: 'music video', shot: 'medium shot', lighting: 'neon glow', desc: 'Stylized performance' },
+                { name: '🌙 Noir', style: 'film noir', shot: 'low angle', lighting: 'chiaroscuro', desc: 'Classic shadows' },
+                { name: '✨ Dream', style: 'cinematic', shot: 'close-up', lighting: 'soft diffused light', quality: 'shallow depth of field', desc: 'Ethereal feel' }
+            ],
+            image: [
+                { name: '📸 Portrait', style: 'photorealistic', shot: 'headshot', lighting: 'soft diffused light', quality: 'shallow depth of field', desc: 'Classic portrait' },
+                { name: '🎨 Concept', style: 'concept art', shot: 'wide establishing shot', lighting: 'dramatic side lighting', desc: 'Environment design' },
+                { name: '🖼️ Fine Art', style: 'oil painting', shot: 'portrait composition', lighting: 'chiaroscuro', desc: 'Classical painting' },
+                { name: '🔮 Fantasy', style: 'digital art', shot: 'full body shot', lighting: 'volumetric rays', desc: 'Magical scene' },
+                { name: '🤖 Sci-Fi', style: '3D render', shot: 'wide establishing shot', lighting: 'neon glow', desc: 'Futuristic setting' },
+                { name: '📱 Product', style: 'photorealistic', shot: 'close-up detail', lighting: 'soft diffused light', desc: 'Commercial shot' },
+                { name: '🌸 Anime', style: 'anime style', shot: 'medium shot', lighting: 'natural lighting', desc: 'Japanese animation' },
+                { name: '🏛️ Architecture', style: 'photorealistic', shot: 'wide establishing shot', lighting: 'natural lighting', desc: 'Building exterior' }
+            ]
+        };
+
+        // ========== STATE ==========
+        let state = {
+            mediaType: 'video',
+            platform: 'universal',
+            shotType: '',
+            visualStyle: '',
+            lightingStyle: '',
+            quality: '',
+            subjectEnabled: true
+        };
+        let savedPrompts = JSON.parse(localStorage.getItem('promptforge_saved') || '[]');
+
+        // ========== INIT ==========
+        function init() {
+            updatePlatformUI();
+            updateMediaUI();
+            renderPresets();
+            generate();
+        }
+
+        // ========== MEDIA TYPE ==========
+        function setMediaType(type) {
+            state.mediaType = type;
+            document.getElementById('toggleVideo').classList.toggle('active', type === 'video');
+            document.getElementById('toggleImage').classList.toggle('active', type === 'image');
+            
+            // Reset platform to universal when switching
+            state.platform = 'universal';
+            
+            updateMediaUI();
+            updatePlatformUI();
+            renderPresets();
+            generate();
+        }
+
+        function updateMediaUI() {
+            const isVideo = state.mediaType === 'video';
+            
+            // Show/hide platform grids
+            document.getElementById('videoPlatforms').classList.toggle('hidden', !isVideo);
+            document.getElementById('imagePlatforms').classList.toggle('hidden', isVideo);
+            
+            // Update labels
+            document.getElementById('sceneLabel').textContent = isVideo ? 'Scene Foundation' : 'Image Composition';
+            document.getElementById('shotLabel').textContent = isVideo ? 'Shot Type' : 'Composition';
+            document.getElementById('subjectLabel').textContent = isVideo ? 'Subject / Character' : 'Subject Details';
+            document.getElementById('techLabel').textContent = isVideo ? 'Technical & Camera' : 'Quality & Render';
+            
+            // Show/hide motion fields
+            document.getElementById('motionFields').classList.toggle('hidden', !isVideo);
+            document.getElementById('actionField').classList.toggle('hidden', !isVideo);
+            
+            // Update shot pills
+            const shots = isVideo ? VIDEO_SHOTS : IMAGE_COMPOSITIONS;
+            const shotPills = document.getElementById('shotPills');
+            shotPills.innerHTML = shots.map(s => `<span class="pill" data-value="${s.value}">${s.label}</span>`).join('');
+            attachPillListeners(shotPills, 'shotType');
+            
+            // Update style pills
+            const styles = isVideo ? VIDEO_STYLES : IMAGE_STYLES;
+            const stylePills = document.getElementById('stylePills');
+            stylePills.innerHTML = styles.map(s => `<span class="pill" data-value="${s.value}">${s.label}</span>`).join('');
+            attachPillListeners(stylePills, 'visualStyle');
+            
+            // Show/hide MJ params
+            document.getElementById('mjParams').classList.toggle('hidden', state.platform !== 'midjourney');
+            document.getElementById('negativeTab').classList.toggle('hidden', !['sd', 'midjourney', 'leonardo'].includes(state.platform));
+            
+            // Update platform count
+            const count = Object.values(PLATFORMS).filter(p => p.type === state.mediaType || p.type === 'both').length;
+            document.getElementById('platformCount').textContent = `${count} platforms`;
+        }
+
+        // ========== PLATFORM ==========
+        function selectPlatform(id) {
+            state.platform = id;
+            updatePlatformUI();
+            generate();
+        }
+
+        function updatePlatformUI() {
+            // Update active states
+            document.querySelectorAll('.platform-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.platform === state.platform);
+            });
+            
+            // Update tip
+            const p = PLATFORMS[state.platform];
+            document.getElementById('tipTitle').textContent = p.name + (p.company ? ` (${p.company})` : '');
+            document.getElementById('tipContent').textContent = p.tip;
+            
+            // Update preview header
+            document.getElementById('activePlatformIcon').textContent = p.icon;
+            document.getElementById('activePlatformName').textContent = p.name;
+            document.getElementById('activePlatformType').textContent = p.type === 'both' ? 'Video + Image' : p.type.charAt(0).toUpperCase() + p.type.slice(1);
+            document.getElementById('outputFilename').textContent = `prompt_${state.platform}.txt`;
+            
+            // Show MJ params if needed
+            document.getElementById('mjParams').classList.toggle('hidden', state.platform !== 'midjourney');
+            document.getElementById('negativeTab').classList.toggle('hidden', !['sd', 'midjourney', 'leonardo', 'universal'].includes(state.platform) && state.mediaType === 'image');
+        }
+
+        // ========== PILLS ==========
+        function attachPillListeners(container, field) {
+            container.querySelectorAll('.pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    const wasActive = pill.classList.contains('active');
+                    container.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+                    if (!wasActive) {
+                        pill.classList.add('active');
+                        state[field] = pill.dataset.value;
+                    } else {
+                        state[field] = '';
+                    }
+                    generate();
+                });
+            });
+        }
+
+        document.querySelectorAll('.pill-group').forEach(group => {
+            const field = group.dataset.field;
+            if (field) attachPillListeners(group, field);
+        });
+
+        // ========== SECTIONS ==========
+        function toggleSection(id) {
+            document.getElementById(id).classList.toggle('collapsed');
+        }
+
+        function toggleSubject(e) {
+            e && e.stopPropagation();
+            state.subjectEnabled = !state.subjectEnabled;
+            document.getElementById('subjectToggle').classList.toggle('on', state.subjectEnabled);
+            document.getElementById('subjectFields').style.display = state.subjectEnabled ? '' : 'none';
+            generate();
+        }
+
+        // ========== PRESETS ==========
+        function renderPresets() {
+            const presets = PRESETS[state.mediaType];
+            const grid = document.getElementById('presetsGrid');
+            grid.innerHTML = presets.map((p, i) => `
+                <button class="text-left bg-black/30 border border-white/5 rounded-lg p-3 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all" onclick="loadPreset(${i})">
+                    <div class="text-xs font-bold text-white mb-0.5">${p.name}</div>
+                    <div class="text-[10px] text-gray-500">${p.desc}</div>
+                </button>
+            `).join('');
+        }
+
+        function loadPreset(index) {
+            const p = PRESETS[state.mediaType][index];
+            if (!p) return;
+            
+            // Clear and apply
+            resetFields();
+            if (p.shot) activatePill('shotType', p.shot, document.getElementById('shotPills'));
+            if (p.style) activatePill('visualStyle', p.style, document.getElementById('stylePills'));
+            if (p.lighting) activatePill('lightingStyle', p.lighting, document.querySelector('[data-field="lightingStyle"]'));
+            if (p.quality) activatePill('quality', p.quality, document.querySelector('[data-field="quality"]'));
+            if (p.motion) setVal('cameraMotion', p.motion);
+            
+            generate();
+        }
+
+        function activatePill(field, value, container) {
+            if (!container) return;
+            container.querySelectorAll('.pill').forEach(p => {
+                p.classList.remove('active');
+                if (p.dataset.value === value) {
+                    p.classList.add('active');
+                    state[field] = value;
+                }
+            });
+        }
+
+        // ========== HELPERS ==========
+        function val(id) { return document.getElementById(id)?.value?.trim() || ''; }
+        function setVal(id, v) { const el = document.getElementById(id); if (el) el.value = v || ''; }
+
+        // ========== GENERATE ==========
+        function generate() {
+            const parts = [];
+            const p = PLATFORMS[state.platform];
+            const isVideo = state.mediaType === 'video';
+            
+            // Gather values
+            const shot = state.shotType;
+            const style = state.visualStyle;
+            const lighting = state.lightingStyle;
+            const time = val('timeOfDay');
+            const env = val('environment');
+            const mainDesc = val('mainDescription');
+            const subjectName = val('subjectName');
+            const subjectPos = val('subjectPosition');
+            const subjectApp = val('subjectAppearance');
+            const subjectAction = val('subjectAction');
+            const subjectMood = val('subjectMood');
+            const atmo = val('atmosphere');
+            const palette = val('colorPalette');
+            const camera = val('camera');
+            const lens = val('lens');
+            const motion = val('cameraMotion');
+            const aspect = val('aspectRatio');
+            const quality = state.quality;
+            const emphasis = val('emphasis');
+            const negative = val('negative');
+            
+            // Build prompt based on platform style
+            if (p.promptStyle === 'simple') {
+                // Simple style (Pika, Haiper)
+                if (mainDesc) parts.push(mainDesc);
+                if (state.subjectEnabled && subjectName) {
+                    let subj = subjectName;
+                    if (subjectAction) subj += ` ${subjectAction}`;
+                    parts.push(subj);
+                }
+                if (style) parts.push(style);
+                if (isVideo && motion) parts.push(motion);
+            } else if (p.promptStyle === 'keywords' && !isVideo) {
+                // Keyword style (Midjourney, Leonardo)
+                if (mainDesc) parts.push(mainDesc);
+                if (state.subjectEnabled) {
+                    if (subjectName) parts.push(subjectName);
+                    if (subjectApp) parts.push(subjectApp);
+                }
+                if (shot) parts.push(shot);
+                if (style) parts.push(style);
+                if (lighting) parts.push(lighting);
+                if (time) parts.push(time);
+                if (atmo) parts.push(atmo);
+                if (palette) parts.push(palette);
+                if (camera) parts.push(camera);
+                if (lens) parts.push(lens);
+                if (quality) parts.push(quality);
+                if (emphasis) parts.push(emphasis);
+            } else {
+                // Descriptive / Natural style (default)
+                // Opening
+                let opener = '';
+                if (shot || style) {
+                    const qualifiers = [style, shot].filter(Boolean);
+                    const first = qualifiers[0] || '';
+                    const article = 'aeiouAEIOU'.includes(first[0]) ? 'An' : 'A';
+                    opener = `${article} ${qualifiers.join(' ')}`;
+                }
+                if (mainDesc) {
+                    opener = (opener || 'A scene') + ` of ${mainDesc}`;
+                } else if (env) {
+                    opener = (opener || 'A scene') + `, ${env}`;
+                }
+                if (opener) parts.push(opener.trim() + '.');
+                
+                // Time/lighting
+                if (time || lighting) {
+                    let lp = [];
+                    if (lighting) lp.push(lighting);
+                    if (time) lp.push(time);
+                    parts.push(`The scene features ${lp.join(' with ')}.`);
+                }
+                
+                // Atmosphere
+                if (atmo || palette) {
+                    let ap = [];
+                    if (atmo) ap.push(atmo);
+                    if (palette) ap.push(`a color palette of ${palette}`);
+                    parts.push(ap.join(', ') + '.');
+                }
+                
+                // Subject
+                if (state.subjectEnabled && (subjectName || subjectApp || subjectAction)) {
+                    const sn = subjectName || 'The subject';
+                    let sp = [];
+                    if (subjectPos) sp.push(`${sn} is positioned ${subjectPos}.`);
+                    else sp.push(`${sn} is visible in the scene.`);
+                    if (subjectApp) sp.push(`${subjectName ? 'They have' : 'Featuring'} ${subjectApp}.`);
+                    if (isVideo && subjectAction) sp.push(`${subjectName || 'They'} ${subjectAction}.`);
+                    if (subjectMood) sp.push(`${subjectName ? subjectName + "'s" : 'Their'} expression conveys ${subjectMood}.`);
+                    parts.push(sp.join(' '));
+                }
+                
+                // Technical
+                let tech = [];
+                if (camera) tech.push(`shot on ${camera}`);
+                if (lens) tech.push(lens);
+                if (isVideo && motion) tech.push(`with ${motion}`);
+                if (aspect) tech.push(aspect);
+                if (quality) tech.push(quality);
+                if (tech.length) parts.push(tech.join(', ') + '.');
+                
+                // Emphasis
+                if (emphasis) parts.push(`Emphasis on ${emphasis}.`);
+            }
+            
+            // Build final prompt
+            let prompt = parts.filter(p => p && p.trim()).join(' ').replace(/\.\./g, '.').replace(/\s+/g, ' ').trim();
+            
+            // Platform-specific additions
+            if (state.platform === 'midjourney') {
+                const mjAr = val('mjAr');
+                const mjStyle = val('mjStyle');
+                const mjOther = val('mjOther');
+                const params = [mjAr, mjStyle, mjOther].filter(Boolean).join(' ');
+                if (params) prompt += ' ' + params;
+            }
+            
+            // Update outputs
+            const output = document.getElementById('promptOutput');
+            const outputRaw = document.getElementById('promptOutputRaw');
+            const outputNeg = document.getElementById('promptOutputNegative');
+            
+            if (!prompt) {
+                output.innerHTML = '<span class="text-gray-600 italic">Start building your prompt using the controls...</span>';
+                outputRaw.textContent = '';
+                document.getElementById('wordCount').textContent = '0';
+                document.getElementById('charCount').textContent = '0';
+            } else {
+                output.innerHTML = highlightPrompt(prompt);
+                outputRaw.textContent = prompt;
+                
+                const words = prompt.split(/\s+/).length;
+                const chars = prompt.length;
+                const wc = document.getElementById('wordCount');
+                wc.textContent = words + ' words';
+                wc.className = `word-badge mono ${words > 200 ? 'bg-red-500/15 text-red-400' : words > 100 ? 'bg-amber-500/15 text-amber-400' : 'bg-green-500/10 text-green-400'}`;
+                document.getElementById('charCount').textContent = chars + ' chars';
+            }
+            
+            // Negative prompt
+            if (negative) {
+                outputNeg.innerHTML = `<span class="hl-red">${negative}</span>`;
+            } else {
+                outputNeg.innerHTML = '<span class="text-gray-600 italic">Add negative prompts in the Refinements section...</span>';
+            }
+        }
+
+        function highlightPrompt(text) {
+            let r = text;
+            const purple = ['cinematic','photorealistic','hyperdetailed','8K','4K','HDR','dramatic','film grain','bokeh','depth of field','RAW'];
+            const amber = ['wide shot','close-up','medium shot','tracking shot','aerial','portrait','landscape','golden hour','sunset','dawn','nighttime','studio lighting'];
+            const blue = ['ARRI','RED','Sony','Hasselblad','anamorphic','35mm','50mm','85mm'];
+            
+            purple.forEach(term => {
+                r = r.replace(new RegExp(`(${term})`, 'gi'), '<span class="hl-purple">$1</span>');
+            });
+            amber.forEach(term => {
+                r = r.replace(new RegExp(`(${term})`, 'gi'), '<span class="hl-amber">$1</span>');
+            });
+            blue.forEach(term => {
+                r = r.replace(new RegExp(`(${term})`, 'gi'), '<span class="hl-blue">$1</span>');
+            });
+            
+            return r;
+        }
+
+        // ========== TABS ==========
+        function switchOutputTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+            document.getElementById('promptOutput').classList.toggle('hidden', tab !== 'formatted');
+            document.getElementById('promptOutputRaw').classList.toggle('hidden', tab !== 'raw');
+            document.getElementById('promptOutputNegative').classList.toggle('hidden', tab !== 'negative');
+        }
+
+        // ========== COPY ==========
+        function copyPrompt(type) {
+            const text = type === 'negative' ? val('negative') : document.getElementById('promptOutputRaw').textContent;
+            if (!text) return;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                if (type === 'main') {
+                    const btn = document.getElementById('copyBtn');
+                    const lbl = document.getElementById('copyLabel');
+                    lbl.textContent = 'Copied!';
+                    btn.classList.remove('from-purple-500', 'to-fuchsia-500');
+                    btn.classList.add('from-green-500', 'to-emerald-500');
+                    setTimeout(() => {
+                        lbl.textContent = 'Copy Prompt';
+                        btn.classList.remove('from-green-500', 'to-emerald-500');
+                        btn.classList.add('from-purple-500', 'to-fuchsia-500');
+                    }, 2000);
+                }
+            });
+        }
+
+        // ========== SAVE ==========
+        function savePrompt() {
+            const text = document.getElementById('promptOutputRaw').textContent;
+            if (!text) return;
+            savedPrompts.unshift({ text, platform: state.platform, mediaType: state.mediaType, timestamp: Date.now() });
+            if (savedPrompts.length > 30) savedPrompts.pop();
+            localStorage.setItem('promptforge_saved', JSON.stringify(savedPrompts));
+            renderSaved();
+        }
+
+        function toggleSaved() {
+            const panel = document.getElementById('savedPanel');
+            panel.classList.toggle('hidden');
+            if (!panel.classList.contains('hidden')) renderSaved();
+        }
+
+        function renderSaved() {
+            const list = document.getElementById('savedList');
+            if (!savedPrompts.length) {
+                list.innerHTML = '<p class="text-[11px] text-gray-600 italic">No saved prompts yet.</p>';
+                return;
+            }
+            list.innerHTML = savedPrompts.map((s, i) => `
+                <div class="bg-black/30 rounded-lg p-2 cursor-pointer hover:bg-purple-500/10 transition-all" onclick="loadSaved(${i})">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs">${PLATFORMS[s.platform]?.icon || '🌐'}</span>
+                        <span class="text-[10px] text-purple-400 font-semibold">${PLATFORMS[s.platform]?.name || 'Unknown'}</span>
+                        <span class="text-[10px] text-gray-600 ml-auto">${new Date(s.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <p class="text-[11px] text-gray-400 truncate">${s.text.substring(0, 80)}...</p>
+                </div>
+            `).join('');
+        }
+
+        function loadSaved(i) {
+            const s = savedPrompts[i];
+            if (!s) return;
+            navigator.clipboard.writeText(s.text);
+        }
+
+        function clearSaved() {
+            savedPrompts = [];
+            localStorage.removeItem('promptforge_saved');
+            renderSaved();
+        }
+
+        // ========== DOWNLOAD ==========
+        function downloadPrompt() {
+            const text = document.getElementById('promptOutputRaw').textContent;
+            if (!text) return;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `promptforge_${state.platform}_${Date.now()}.txt`;
+            a.click();
+        }
+
+        // ========== ADAPT MODAL ==========
+        function openAdaptModal() {
+            const modal = document.getElementById('adaptModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // Populate platforms
+            const platforms = Object.entries(PLATFORMS).filter(([id, p]) => 
+                id !== state.platform && (p.type === state.mediaType || p.type === 'both')
+            );
+            document.getElementById('adaptPlatforms').innerHTML = platforms.map(([id, p]) => `
+                <button class="platform-card text-sm py-3" onclick="adaptTo('${id}')">
+                    <div class="text-lg mb-1">${p.icon}</div>
+                    <div class="text-[11px] font-bold">${p.name}</div>
+                </button>
+            `).join('');
+            
+            document.getElementById('adaptedOutput').classList.add('hidden');
+        }
+
+        function closeAdaptModal(e) {
+            if (e && e.target !== e.currentTarget) return;
+            document.getElementById('adaptModal').classList.add('hidden');
+            document.getElementById('adaptModal').classList.remove('flex');
+        }
+
+        function adaptTo(platformId) {
+            const original = document.getElementById('promptOutputRaw').textContent;
+            if (!original) return;
+            
+            const p = PLATFORMS[platformId];
+            let adapted = original;
+            
+            // Platform-specific adaptations
+            if (p.promptStyle === 'simple') {
+                // Shorten to key elements
+                adapted = original.split('.').slice(0, 2).join('. ').trim();
+                if (!adapted.endsWith('.')) adapted += '.';
+            } else if (p.promptStyle === 'keywords' && platformId === 'midjourney') {
+                // Convert to comma-separated keywords
+                adapted = original.replace(/\.\s*/g, ', ').replace(/,\s*$/, '');
+                adapted += ' --ar 16:9 --v 6.1';
+            } else if (platformId === 'sd') {
+                // Add quality boosters for SD
+                adapted = original + ', masterpiece, best quality, highly detailed';
+            }
+            
+            document.getElementById('adaptedText').textContent = adapted;
+            document.getElementById('adaptedOutput').classList.remove('hidden');
+        }
+
+        function copyAdapted() {
+            const text = document.getElementById('adaptedText').textContent;
+            navigator.clipboard.writeText(text);
+            closeAdaptModal();
+        }
+
+        // ========== RESET ==========
+        function resetFields() {
+            document.querySelectorAll('.field-input').forEach(el => {
+                if (el.tagName === 'SELECT') el.selectedIndex = 0;
+                else el.value = '';
+            });
+            document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+            state.shotType = ''; state.visualStyle = ''; state.lightingStyle = ''; state.quality = '';
+        }
+
+        function resetAll() {
+            resetFields();
+            state.subjectEnabled = true;
+            document.getElementById('subjectToggle').classList.add('on');
+            document.getElementById('subjectFields').style.display = '';
+            document.querySelectorAll('.section-card').forEach(s => s.classList.remove('collapsed'));
+            generate();
+        }
+
+        // ========== START ==========
+        init();
+    </script>
+</body>
+</html>
